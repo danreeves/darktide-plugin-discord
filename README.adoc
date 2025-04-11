@@ -1,0 +1,89 @@
+= Darktide Plugin Template
+:idprefix:
+:idseparator:
+:toc: macro
+:toclevels: 1
+:!toc-title:
+:caution-caption: :fire:
+:important-caption: :exclamtion:
+:note-caption: :paperclip:
+:tip-caption: :bulb:
+:warning-caption: :warning:
+
+A template for building an engine plugin for Warhammer 40,000 Darktide.
+
+== Getting started
+
+In `src/lib.rs`, change `PLUGIN_NAME` and `MODULE_NAME` to unique values matching your plugin.
+Then head to `src/plugin.rs`, where `Plugin.setup_game`, `Plugin.update_game` and
+`Plugin.shutdown_game` are your entry points that the engine will call. Start your plugin
+implementation here.
+
+`src/stingray_sdk.rs` provides mappings for the engine's API. A few functions are already
+implemented to serve as an example. You can implement more based on what you need (see
+`LuaApi` in `src/plugin_api.h` for what's available).
+If you do implement more mappings, please contribute them upstream to this template, so that
+others can benefit from them as well.
+
+Your primary interface with the game's Lua code should be `LuaApi.add_module_function`. This creates
+functions callable from Lua, such as `DTPluginTemplate.do_something` in `src/plugin.rs`.
+
+=== Things to keep in mind
+
+* Printing in Rust code will not show up in the game's log. You must use `plugin.log` (`LoggingApi`).
+* Panics in Rust will lead to a game crash. Using `Result` is good hygiene anyways.
+
+=== Advanced
+
+`PluginApi` contains more functions than just the three currently mapped in `Plugin`.
+If you need any of those, you will have to implement their mapping both in `Plugin` and in
+`src/lib.rs` like to the existing ones.
+
+The engine also provides additional API structs beyond `LoggingApi` and `LuaApi`. A full list can be
+found at https://github.com/AutodeskGames/stingray-plugin/blob/master/stingray_sdk/engine_plugin_api/plugin_api.h[AutodeskGames/stingray-plugin].
+You will need to copy the definitions from there to `src/plugin_api.h`. They will likely also need
+adjustments, as Darktide's engine has long since diverted from Autodesk's version.
+
+== Building
+
+> Only cross-compiling on a Linux build machine has been tested so far.
+> Native build on Windows likely only need the basic setup for Rust, though.
+
+The engine requires DLLs to have a name suffix of `_pluginw64_release.dll`. The rest before that
+can be an arbitrary file name. The DLL then needs to be copied to `binaries/plugins` in the game's
+installation directory.
+
+=== Docker
+
+The easiest way is using the provided `Dockerfile`. While it does run a Linux image, it sets up
+everything needed for compiling Windows DLLs, so it will work the same regardless of the host OS.
+
+[source,shell]
+----
+docker build -t my-project .
+docker run --rm -t -v ./:/src/plugin my-project cargo build --release
+----
+
+(substitute `my-project` for a fitting name)
+
+This `Dockerfile` should be suitable for CI as well.
+
+=== Manual (Linux)
+
+==== Prerequisites
+
+* A reasonably recent version of LLVM, lld & Clang
+** A symlink `clang-cl` -> `clang` in `PATH`
+* cURL
+* Wine
+* Rust toolchain, MSVC target and `rust-src`:
+** `rustup target add x86_64-pc-windows-msvc`
+** `rustup component add rust-src`
+
+==== Build
+
+Set up https://github.com/Jake-Shadle/xwin[Jake-Shadle/xwin]. That repository contains a Docker file
+that can serve as an example. So does the `Dockerfile` here.
+
+This includes the setup of Wine and the environmental variables to have Cargo use the Windows
+libraries and tools through Wine.
