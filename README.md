@@ -14,18 +14,42 @@ Place `darktide_discord_pluginw64.dll` in the `[game install]/binaries/plugins/`
 
 ## Building
 
-```
+This project uses the Discord Game SDK C bindings. To build:
+
+```bash
 make
 ```
 
-Compiled with
+### Requirements
 
+- MinGW-w64 cross-compiler (x86_64-w64-mingw32-g++)
+- Discord Game SDK (included in `discord_game_sdk/`)
+
+### Discord Game SDK
+
+The project uses the C bindings from the Discord Game SDK, located in `discord_game_sdk/c/`. The header file includes the recommended `#pragma pack` directives for compatibility:
+
+```c
+#pragma pack(push, 8)
+#include "discord_game_sdk.h"
+#pragma pack(pop)
 ```
-g++.exe (GCC) 4.8.3
-Copyright (C) 2013 Free Software Foundation, Inc.
 
-GNU ld (GNU Binutils) 2.24
-Copyright 2013 Free Software Foundation, Inc.
+### Cross-compilation
+
+On Linux, you can install the MinGW cross-compiler:
+
+```bash
+sudo apt-get install mingw-w64
+```
+
+Then compile with:
+
+```bash
+x86_64-w64-mingw32-g++ -Wall -Wextra -std=c++11 -shared -Os \
+  -I./src/lua -I./discord_game_sdk/c \
+  -L./discord_game_sdk/lib/x86_64 -ldiscord_game_sdk \
+  -o darktide_discord_pluginw64.dll src/darktide_discord.cpp
 ```
 
 ## API
