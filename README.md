@@ -14,43 +14,46 @@ Place `darktide_discord_pluginw64.dll` in the `[game install]/binaries/plugins/`
 
 ## Building
 
-This project uses the Discord Game SDK C bindings. To build:
-
-```bash
-make
-```
+This project is written in Zig and uses the Discord Game SDK C bindings.
 
 ### Requirements
 
-- MinGW-w64 cross-compiler (x86_64-w64-mingw32-g++)
+- [Zig](https://ziglang.org/download/) (version 0.13.0 or later)
 - Discord Game SDK (included in `discord_game_sdk/`)
 
-### Discord Game SDK
+### Build with Zig (Recommended)
 
-The project uses the C bindings from the Discord Game SDK, located in `discord_game_sdk/c/`. The header file includes the recommended `#pragma pack` directives for compatibility:
+```bash
+zig build
+```
 
-```c
-#pragma pack(push, 8)
-#include "discord_game_sdk.h"
-#pragma pack(pop)
+The DLL will be output to `zig-out/lib/darktide_discord_pluginw64.dll`.
+
+### Build Options
+
+```bash
+# Build in release mode (optimized)
+zig build -Doptimize=ReleaseFast
+
+# Build in debug mode
+zig build
 ```
 
 ### Cross-compilation
 
-On Linux, you can install the MinGW cross-compiler:
+Zig includes cross-compilation support by default. The build is configured to target Windows x86_64 automatically, so you can build from Linux, macOS, or Windows.
 
-```bash
-sudo apt-get install mingw-w64
+### Discord Game SDK
+
+The project uses the C bindings from the Discord Game SDK, located in `discord_game_sdk/c/`. The Zig code imports the C header directly:
+
+```zig
+const c = @cImport({
+    @cInclude("discord_game_sdk.h");
+});
 ```
 
-Then compile with:
-
-```bash
-x86_64-w64-mingw32-g++ -Wall -Wextra -std=c++11 -shared -Os \
-  -I./src/lua -I./discord_game_sdk/c \
-  -L./discord_game_sdk/lib/x86_64 -ldiscord_game_sdk \
-  -o darktide_discord_pluginw64.dll src/darktide_discord.cpp
-```
+This provides the same functionality as the C++ wrapper but with a simpler, more direct API.
 
 ## API
 
@@ -78,3 +81,7 @@ DarktideDiscord.set_start_time()
 -- Call this in the game looop
 DarktideDiscord.update();
 ```
+
+## Development
+
+The plugin is implemented in Zig (`src/darktide_discord.zig`) and links directly to the Discord Game SDK C library. The build system (`build.zig`) handles all compilation and linking automatically.

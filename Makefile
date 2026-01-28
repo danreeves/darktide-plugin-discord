@@ -1,4 +1,5 @@
-# Makefile
+# NOTE: This Makefile is deprecated. Use `zig build` instead.
+# Kept for reference only.
 
 # Compiler
 CXX = g++
@@ -15,13 +16,19 @@ LDLIBS = -ldiscord_game_sdk
 # Target DLL name
 TARGET = darktide_discord_pluginw64.dll
 
-# Source file
+# Source file (C++ version - now replaced by Zig implementation)
 SRC = src/darktide_discord.cpp
 
-all: $(TARGET)
-
-$(TARGET): $(SRC)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LDLIBS) -o $(TARGET) $(SRC)
+all:
+	@echo "ERROR: This Makefile is deprecated."
+	@echo "The project has been migrated to Zig."
+	@echo ""
+	@echo "To build, use:"
+	@echo "  zig build"
+	@echo ""
+	@echo "The DLL will be output to: zig-out/lib/darktide_discord_pluginw64.dll"
+	@exit 1
 
 clean:
-	del /F /Q "$(TARGET)"
+	rm -rf zig-out zig-cache
+	del /F /Q "$(TARGET)" 2>/dev/null || true

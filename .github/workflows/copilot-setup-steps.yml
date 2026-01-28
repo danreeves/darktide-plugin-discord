@@ -1,0 +1,55 @@
+name: Setup Zig Environment
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+      - copilot/**
+
+jobs:
+  setup-zig:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.13.0
+
+      - name: Verify Zig installation
+        run: |
+          zig version
+          zig env
+
+      - name: Build project with Zig
+        run: |
+          zig build
+
+      - name: List build artifacts
+        run: |
+          ls -lh zig-out/lib/
+
+      - name: Upload DLL artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: darktide_discord_pluginw64
+          path: zig-out/lib/darktide_discord_pluginw64.dll
+          if-no-files-found: error
+
+  build-info:
+    runs-on: ubuntu-latest
+    needs: setup-zig
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: darktide_discord_pluginw64
+
+      - name: Check DLL info
+        run: |
+          ls -lh darktide_discord_pluginw64.dll
+          file darktide_discord_pluginw64.dll || echo "file command not available"

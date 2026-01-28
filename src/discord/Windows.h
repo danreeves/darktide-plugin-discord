@@ -1,1 +1,0 @@
-/snap/zig/15308/lib/libc/include/any-windows-any/windows.h
