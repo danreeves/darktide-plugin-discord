@@ -1,1 +1,6 @@
 darktide_discord_pluginw64.dll
+
+# Zig build artifacts
+zig-out/
+zig-cache/
+.zig-cache/
