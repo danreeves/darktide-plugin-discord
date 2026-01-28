@@ -6,18 +6,57 @@ const c = @cImport({
     @cInclude("stddef.h");
     @cInclude("time.h");
     @cInclude("PluginApi128.h");
-    @cInclude("discord/discord.h");
 });
 
-var core: ?*c.discord_Core = null;
-var activity: c.discord_Activity = undefined;
+// Forward declare Discord SDK types - these match the C++ API
+const discord_Core = opaque {};
+// Use a byte array for the activity struct (size from Discord SDK docs)
+const DISCORD_ACTIVITY_SIZE = 512; // Estimated size, adjust if needed
+var activity_buffer: [DISCORD_ACTIVITY_SIZE]u8 align(8) = undefined;
+
+const discord_Activity = opaque {};
+const discord_ActivityAssets = opaque {};
+const discord_ActivityParty = opaque {};
+const discord_PartySize = opaque {};
+const discord_ActivityTimestamps = opaque {};
+const discord_ActivityManager = opaque {};
+const discord_Result = c_int;
+const discord_Result_Ok: c_int = 0;
+
+// Discord SDK function declarations that we'll link from the C++ library
+extern "c" fn discord_Core_Create(client_id: i64, flags: c_ulonglong, core: *?*discord_Core) discord_Result;
+extern "c" fn discord_Core_GetActivityManager(core: *discord_Core) *discord_ActivityManager;
+extern "c" fn discord_Core_RunCallbacks(core: *discord_Core) discord_Result;
+extern "c" fn discord_Activity_SetState(activity: *discord_Activity, state: [*c]const u8) void;
+extern "c" fn discord_Activity_SetDetails(activity: *discord_Activity, details: [*c]const u8) void;
+extern "c" fn discord_Activity_GetAssets(activity: *discord_Activity) *discord_ActivityAssets;
+extern "c" fn discord_Activity_GetParty(activity: *discord_Activity) *discord_ActivityParty;
+extern "c" fn discord_Activity_GetTimestamps(activity: *discord_Activity) *discord_ActivityTimestamps;
+extern "c" fn discord_ActivityAssets_SetSmallImage(assets: *discord_ActivityAssets, image: [*c]const u8) void;
+extern "c" fn discord_ActivityAssets_SetSmallText(assets: *discord_ActivityAssets, text: [*c]const u8) void;
+extern "c" fn discord_ActivityAssets_SetLargeImage(assets: *discord_ActivityAssets, image: [*c]const u8) void;
+extern "c" fn discord_ActivityParty_GetSize(party: *discord_ActivityParty) *discord_PartySize;
+extern "c" fn discord_PartySize_SetCurrentSize(size: *discord_PartySize, current: i32) void;
+extern "c" fn discord_PartySize_SetMaxSize(size: *discord_PartySize, max: i32) void;
+extern "c" fn discord_ActivityTimestamps_SetStart(timestamps: *discord_ActivityTimestamps, start: i64) void;
+extern "c" fn discord_ActivityManager_UpdateActivity(
+    manager: *discord_ActivityManager,
+    activity: *discord_Activity,
+    callback_data: ?*anyopaque,
+    callback: ?*const fn (callback_data: ?*anyopaque, result: discord_Result) callconv(.c) void,
+) void;
+
+var core: ?*discord_Core = null;
+var activity: *discord_Activity = @ptrCast(&activity_buffer);
 var lua_api: ?*c.LuaApi128 = null;
 var logger: ?*c.LoggingApi = null;
+
+const DiscordCreateFlags_NoRequireDiscord: c_ulonglong = 1;
 
 fn set_state(L: ?*c.lua_State) callconv(.c) c_int {
     if (lua_api.?.isstring.?(L, 1) != 0) {
         const value = lua_api.?.tolstring.?(L, 1, null);
-        c.discord_Activity_SetState(&activity, value);
+        discord_Activity_SetState(activity, value);
         lua_api.?.pushboolean.?(L, 1); // success
     } else {
         lua_api.?.pushboolean.?(L, 0); // error
@@ -28,7 +67,7 @@ fn set_state(L: ?*c.lua_State) callconv(.c) c_int {
 fn set_details(L: ?*c.lua_State) callconv(.c) c_int {
     if (lua_api.?.isstring.?(L, 1) != 0) {
         const value = lua_api.?.tolstring.?(L, 1, null);
-        c.discord_Activity_SetDetails(&activity, value);
+        discord_Activity_SetDetails(activity, value);
         lua_api.?.pushboolean.?(L, 1); // success
     } else {
         lua_api.?.pushboolean.?(L, 0); // error
@@ -40,9 +79,9 @@ fn set_class(L: ?*c.lua_State) callconv(.c) c_int {
     if (lua_api.?.isstring.?(L, 1) != 0 and lua_api.?.isstring.?(L, 2) != 0) {
         const archetype = lua_api.?.tolstring.?(L, 1, null);
         const details = lua_api.?.tolstring.?(L, 2, null);
-        var assets = c.discord_Activity_GetAssets(&activity);
-        c.discord_ActivityAssets_SetSmallImage(assets, archetype);
-        c.discord_ActivityAssets_SetSmallText(assets, details);
+        const assets = discord_Activity_GetAssets(activity);
+        discord_ActivityAssets_SetSmallImage(assets, archetype);
+        discord_ActivityAssets_SetSmallText(assets, details);
         lua_api.?.pushboolean.?(L, 1); // success
     } else {
         lua_api.?.pushboolean.?(L, 0); // error
@@ -54,10 +93,10 @@ fn set_party_size(L: ?*c.lua_State) callconv(.c) c_int {
     if (lua_api.?.isnumber.?(L, 1) != 0 and lua_api.?.isnumber.?(L, 2) != 0) {
         const current_size: i32 = @intFromFloat(lua_api.?.tonumber.?(L, 1));
         const max_size: i32 = @intFromFloat(lua_api.?.tonumber.?(L, 2));
-        var party = c.discord_Activity_GetParty(&activity);
-        var size = c.discord_ActivityParty_GetSize(party);
-        c.discord_PartySize_SetCurrentSize(size, current_size);
-        c.discord_PartySize_SetMaxSize(size, max_size);
+        const party = discord_Activity_GetParty(activity);
+        const size = discord_ActivityParty_GetSize(party);
+        discord_PartySize_SetCurrentSize(size, current_size);
+        discord_PartySize_SetMaxSize(size, max_size);
         lua_api.?.pushboolean.?(L, 1); // success
     } else {
         lua_api.?.pushboolean.?(L, 0); // error
@@ -67,27 +106,27 @@ fn set_party_size(L: ?*c.lua_State) callconv(.c) c_int {
 
 fn set_start_time(L: ?*c.lua_State) callconv(.c) c_int {
     const result = c.time(null);
-    var timestamps = c.discord_Activity_GetTimestamps(&activity);
-    c.discord_ActivityTimestamps_SetStart(timestamps, result);
+    const timestamps = discord_Activity_GetTimestamps(activity);
+    discord_ActivityTimestamps_SetStart(timestamps, result);
     lua_api.?.pushboolean.?(L, 1); // success
     return 1;
 }
 
 fn update_discord() void {
     if (core) |discord_core| {
-        const activity_manager = c.discord_Core_GetActivityManager(discord_core);
-        c.discord_ActivityManager_UpdateActivity(
+        const activity_manager = discord_Core_GetActivityManager(discord_core);
+        discord_ActivityManager_UpdateActivity(
             activity_manager,
-            &activity,
+            activity,
             null,
             updateActivityCallback,
         );
     }
 }
 
-fn updateActivityCallback(callback_data: ?*anyopaque, result: c.discord_Result) callconv(.c) void {
+fn updateActivityCallback(callback_data: ?*anyopaque, result: discord_Result) callconv(.c) void {
     _ = callback_data;
-    if (result != c.discord_Result_Ok) {
+    if (result != discord_Result_Ok) {
         var message: [255]u8 = undefined;
         const msg = std.fmt.bufPrintZ(&message, "non-zero update result: {d}", .{result}) catch return;
         if (logger) |log| {
@@ -116,14 +155,15 @@ fn setup_game(get_engine_api: c.GetApiFunction) callconv(.c) void {
     lua.add_module_function.?("DarktideDiscord", "update", lua_update);
 
     const client_id: i64 = 1111429477055090698;
-    var temp_core: ?*c.discord_Core = null;
-    const result = c.discord_Core_Create(client_id, c.DiscordCreateFlags_NoRequireDiscord, &temp_core);
+    var temp_core: ?*discord_Core = null;
+    const result = discord_Core_Create(client_id, DiscordCreateFlags_NoRequireDiscord, &temp_core);
     _ = result;
     core = temp_core;
 
-    activity = std.mem.zeroes(c.discord_Activity);
-    var assets = c.discord_Activity_GetAssets(&activity);
-    c.discord_ActivityAssets_SetLargeImage(assets, "darktide");
+    // Zero-initialize the activity buffer
+    @memset(&activity_buffer, 0);
+    const assets = discord_Activity_GetAssets(activity);
+    discord_ActivityAssets_SetLargeImage(assets, "darktide");
     update_discord();
 }
 
@@ -137,7 +177,7 @@ fn loaded(_: c.GetApiFunction) callconv(.c) void {
 
 fn update_game(_: f32) callconv(.c) void {
     if (core) |discord_core| {
-        _ = c.discord_Core_RunCallbacks(discord_core);
+        _ = discord_Core_RunCallbacks(discord_core);
     }
 }
 
