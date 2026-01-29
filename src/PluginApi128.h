@@ -1,22 +1,20 @@
 #pragma once
-// This is manually updated and minified PluginApi based on the publicly available sources at: https://github.com/AutodeskGames/stingray-plugin
+// This is manually updated and minified PluginApi based on the publicly
+// available sources at: https://github.com/AutodeskGames/stingray-plugin
+// From
+// https://github.com/thewhitegoatcb/rawray/blob/master/rawray/PluginApi128.h
 
-#if defined(ANDROID)
-#define PLUGIN_DLLEXPORT
-#else
 #define PLUGIN_DLLEXPORT __declspec(dllexport)
-#endif
 
 #include <stdarg.h>
+#include <stddef.h>
 #include <stdint.h>
 
 typedef struct CApiUnit CApiUnit;
 typedef struct CApiWorld CApiWorld;
 
-#ifdef __cplusplus
 extern "C"
 {
-#endif
 
 	/* API IDs for the different services. */
 	enum PluginApiID
@@ -69,69 +67,30 @@ extern "C"
 	/* This function can be used by the plugin to query for engine APIs. */
 	typedef void *(*GetApiFunction)(unsigned api);
 
-	struct PluginApi128
+	struct PluginApi
 	{
-#ifdef __cplusplus
-		uint32_t version = 65;
+		uint32_t version = 74;
 		uint32_t flags = 3; // lua plugin
-#else
-	uint32_t version;
-	uint32_t flags;
-#endif
-
-		/* Called to initialize the plugin once it has been loaded into memory. For plugins loaded at
-		   boot, this function is called once all plugins have been loaded (so you can query for other
-			plugins in this function). For plugins loaded on demand, this function is called as soon
-		   as the plugin have been loaded. */
-		void (*loaded)(GetApiFunction get_engine_api);
-
-		/* Called at the start of a "hot reload" of the plugin DLL. Should return a
-			pointer to a serialized "state" for the plugin.*/
-		void *(*start_reload)(GetApiFunction get_engine_api);
-
-		/* Called just before the plugin is unloaded. */
-		void (*unloaded)();
-
-		/* Called to finalized the "hot reload" after the plugin has been reloaded with
-		   the new code. Should restore the state from the serialized state data. Note
-		   that it is the responsibility of the plugin to free the state data. */
-		void (*finish_reload)(GetApiFunction get_engine_api, void *state);
-
-		/* Called when the engine sets up the ResourceManager. At this point you can use the ResourceManagerApi
-			to add support for resource manager loading of your custom data types. */
-		void (*setup_resources)(GetApiFunction get_engine_api);
-
-		/* Called when the engine shuts down the ResourceManager. */
-		void (*shutdown_resources)();
-
-		/* Called when the engine sets up the game. At this point, you can use the functions in the LuaApi
-			to add functions to the engine's Lua API. */
+		uint8_t _padding[0x40];  // Unknown fields/alignment
+		
+		/* Called when the engine sets up the game. At this point, you can use the
+		   functions in the LuaApi to add functions to the engine's Lua API. */
 		void (*setup_game)(GetApiFunction get_engine_api);
 
 		/* Called per game frame. */
 		void (*update_game)(float dt);
 
-		/* Called when the engine shuts down the game. */
-		void (*shutdown_game)();
-
-		/* Called before a world is about to be destroyed and removed from the engines list of worlds. */
-		void (*unregister_world)(CApiWorld *world);
-
-		/* Called after the world has been created and is about to be added to the engines list of worlds */
-		void (*register_world)(CApiWorld *world);
-
-		/* Returns the hash of the plugin. (Optional) */
-		uint64_t (*get_hash)();
+		/* Unknown/unused callback. */
+		void (*unknown_callback1)();
 
 		/* Returns the name of the plugin. */
 		const char *(*get_name)();
 
-		void (*unkfunc13)();
-		void (*unkfunc14)();
-		void *(*unkfunc15)(); // returns some func table
+		/* Called to initialize the plugin once it has been loaded into memory. */
+		void (*loaded)(GetApiFunction get_engine_api);
 
-		/* Called by the engine to draw debug visuals into the world. */
-		void (*debug_draw)(CApiWorld *world, struct StateReflectionStream *srs);
+		/* Called when the engine shuts down the game. */
+		void (*shutdown_game)();
 	};
 
 	/* Opaque struct representing a Lua state. */
@@ -149,18 +108,19 @@ extern "C"
 	typedef struct luaL_Reg luaL_Reg;
 
 	/*
-		Interface to access Lua services.
+			Interface to access Lua services.
 	*/
-	struct LuaApi128
+	struct LuaApi
 	{
 		/* -----------------------------------------------------------------------
-			Extending Lua
+				Extending Lua
 		  ----------------------------------------------------------------------- */
 
 		/* Adds a new lua function in the module with the specified name.
 
 		   The function will be callable as stingray.{module}.{name}() */
-		void (*add_module_function)(const char *module, const char *name, lua_CFunction f);
+		void (*add_module_function)(const char *module, const char *name,
+									lua_CFunction f);
 
 		/* Sets a bool constant in a module. */
 		void (*set_module_bool)(const char *module, const char *key, int value);
@@ -169,35 +129,41 @@ extern "C"
 		void (*set_module_number)(const char *module, const char *key, double value);
 
 		/* Sets a string constant in a module. */
-		void (*set_module_string)(const char *module, const char *key, const char *value);
+		void (*set_module_string)(const char *module, const char *key,
+								  const char *value);
 
-		/* As add_module_function() but prints a deprecation warning when the function is used. */
-		void (*deprecated_warning)(const char *module, const char *name, lua_CFunction f, const char *message);
+		/* As add_module_function() but prints a deprecation warning when the function
+		 * is used. */
+		void (*deprecated_warning)(const char *module, const char *name,
+								   lua_CFunction f, const char *message);
 
-		/* Adds a new console command. Console commands are Lua functions in the stingray.Console
-		   module that only takes string parameters. They can be used from the console:
+		/* Adds a new console command. Console commands are Lua functions in the
+		   stingray.Console module that only takes string parameters. They can be used
+		   from the console:
 
-				> memory_resources all
+						> memory_resources all
 
 		   is equivalent to
 
-				> Console.memory_resources("all")
+						> Console.memory_resources("all")
 
-		   The vararg is a sequence of documentation strings, ended by a nullptr -- like this:
+		   The vararg is a sequence of documentation strings, ended by a nullptr --
+		   like this:
 
-			add_console_command("memory_resources", memory_resources_f,
-				"Print memory usage per resource",
-				"all", "print memory use of all resources",
-				"sound", "print memory use of sound resources",
-				"texture_categories [details]", "print memory usage per texture category",
-				"list <TYPE>", "list memory use of specified types",
-				(void*)nullptr); */
-		void (*add_console_command)(const char *command, lua_CFunction f, const char *desc, ...);
+				add_console_command("memory_resources", memory_resources_f,
+						"Print memory usage per resource",
+						"all", "print memory use of all resources",
+						"sound", "print memory use of sound resources",
+						"texture_categories [details]", "print memory usage per
+		   texture category", "list <TYPE>", "list memory use of specified types",
+						(void*)nullptr); */
+		void (*add_console_command)(const char *command, lua_CFunction f,
+									const char *desc, ...);
 
 		/* -----------------------------------------------------------------------
-			Lua standard functions
+				Lua standard functions
 
-			See the Lua API for documentation.
+				See the Lua API for documentation.
 		  ----------------------------------------------------------------------- */
 
 		/* State manipulation */
@@ -216,9 +182,8 @@ extern "C"
 		int (*checkstack)(lua_State *L, int sz);
 		void (*xmove)(lua_State *from, lua_State *to, int n);
 
-		const void *(*fnx1)(lua_State *L, int idx);
-
 		/* Access functions */
+		int (*isnil)(lua_State *L, int idx);
 		int (*isnumber)(lua_State *L, int idx);
 		int (*isstring)(lua_State *L, int idx);
 		int (*iscfunction)(lua_State *L, int idx);
@@ -306,17 +271,17 @@ extern "C"
 		int (*gethookmask)(lua_State *L);
 		int (*gethookcount)(lua_State *L);
 
-		// int (*fnx3) (lua_State* L);
-
 		/* Library functions */
-		void (*lib_openlib)(lua_State *L, const char *libname, const luaL_Reg *l, int nup);
+		void (*lib_openlib)(lua_State *L, const char *libname, const luaL_Reg *l,
+							int nup);
 		void (*lib_register)(lua_State *L, const char *libname, const luaL_Reg *l);
 		int (*lib_getmetafield)(lua_State *L, int obj, const char *e);
 		int (*lib_callmeta)(lua_State *L, int obj, const char *e);
 		int (*lib_typerror)(lua_State *L, int narg, const char *tname);
 		int (*lib_argerror)(lua_State *L, int numarg, const char *extramsg);
 		const char *(*lib_checklstring)(lua_State *L, int numArg, size_t *l);
-		const char *(*lib_optlstring)(lua_State *L, int numArg, const char *def, size_t *l);
+		const char *(*lib_optlstring)(lua_State *L, int numArg, const char *def,
+									  size_t *l);
 		lua_Number (*lib_checknumber)(lua_State *L, int numArg);
 		lua_Number (*lib_optnumber)(lua_State *L, int nArg, lua_Number def);
 		lua_Integer (*lib_checkinteger)(lua_State *L, int numArg);
@@ -328,19 +293,23 @@ extern "C"
 		void *(*lib_checkudata)(lua_State *L, int ud, const char *tname);
 		void (*lib_where)(lua_State *L, int lvl);
 		int (*lib_error)(lua_State *L, const char *fmt, ...);
-		int (*lib_checkoption)(lua_State *L, int narg, const char *def, const char *const lst[]);
+		int (*lib_checkoption)(lua_State *L, int narg, const char *def,
+							   const char *const lst[]);
 		int (*lib_ref)(lua_State *L, int t);
 		void (*lib_unref)(lua_State *L, int t, int ref);
 		int (*lib_loadfile)(lua_State *L, const char *filename);
-		int (*lib_loadbuffer)(lua_State *L, const char *buff, size_t sz, const char *name);
+		int (*lib_loadbuffer)(lua_State *L, const char *buff, size_t sz,
+							  const char *name);
 		int (*lib_loadstring)(lua_State *L, const char *s);
 		lua_State *(*lib_newstate)(void);
-		const char *(*lib_gsub)(lua_State *L, const char *s, const char *p, const char *r);
-		const char *(*lib_findtable)(lua_State *L, int idx, const char *fname, int szhint);
+		const char *(*lib_gsub)(lua_State *L, const char *s, const char *p,
+								const char *r);
+		const char *(*lib_findtable)(lua_State *L, int idx, const char *fname,
+									 int szhint);
 		void (*lib_openlibs)(lua_State *L);
 
 		/* -----------------------------------------------------------------------
-			Lua Stingray extensions
+				Lua Stingray extensions
 		  ----------------------------------------------------------------------- */
 
 		/* Gets an index integer from the stack. This will automatically convert
@@ -386,6 +355,8 @@ extern "C"
 		/* Gets a Unit at the specified index. */
 		CApiUnit *(*getunit)(lua_State *L, int i);
 
+		// void *(*getunknown)(lua_State *L, int i);
+
 		/* Gets the Lua state where the main scripts execute. */
 		lua_State *(*getscriptenvironmentstate)();
 
@@ -410,8 +381,10 @@ extern "C"
 		/* Returns true if the stack entry is a UnitReference. */
 		int (*isunitreference)(lua_State *L, int i);
 
+		size_t (*objlen2)(lua_State *L, int idx);
+
 		/* Reserved for expansion of the API. */
-		void *reserved[32];
+		// void *reserved[30];
 	};
 
 	struct LoggingApi
@@ -424,8 +397,6 @@ extern "C"
 
 		/* Logs an error message. */
 		void (*error)(const char *system, const char *error);
-	};
+	}; 
 
-#ifdef __cplusplus
 }
-#endif
