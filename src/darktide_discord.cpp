@@ -2,7 +2,7 @@
 #include <sstream>
 
 #include "PluginApi128.h"
-#include "discord/discord.h"
+#include "discord.h"
 #include "lua.h"
 #include <Windows.h>
 

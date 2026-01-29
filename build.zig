@@ -35,59 +35,59 @@ pub fn build(b: *std.Build) void {
 
     // Discord SDK wrapper implementations
     lib.addCSourceFile(.{
-        .file = b.path("src/discord/achievement_manager.cpp"),
+        .file = b.path("discord_game_sdk/cpp/achievement_manager.cpp"),
         .flags = &[_][]const u8{ "-std=c++17", "-fno-exceptions", "-fno-rtti" },
     });
     lib.addCSourceFile(.{
-        .file = b.path("src/discord/activity_manager.cpp"),
+        .file = b.path("discord_game_sdk/cpp/activity_manager.cpp"),
         .flags = &[_][]const u8{ "-std=c++17", "-fno-exceptions", "-fno-rtti" },
     });
     lib.addCSourceFile(.{
-        .file = b.path("src/discord/application_manager.cpp"),
+        .file = b.path("discord_game_sdk/cpp/application_manager.cpp"),
         .flags = &[_][]const u8{ "-std=c++17", "-fno-exceptions", "-fno-rtti" },
     });
     lib.addCSourceFile(.{
-        .file = b.path("src/discord/core.cpp"),
+        .file = b.path("discord_game_sdk/cpp/core.cpp"),
         .flags = &[_][]const u8{ "-std=c++17", "-fno-exceptions", "-fno-rtti" },
     });
     lib.addCSourceFile(.{
-        .file = b.path("src/discord/image_manager.cpp"),
+        .file = b.path("discord_game_sdk/cpp/image_manager.cpp"),
         .flags = &[_][]const u8{ "-std=c++17", "-fno-exceptions", "-fno-rtti" },
     });
     lib.addCSourceFile(.{
-        .file = b.path("src/discord/lobby_manager.cpp"),
+        .file = b.path("discord_game_sdk/cpp/lobby_manager.cpp"),
         .flags = &[_][]const u8{ "-std=c++17", "-fno-exceptions", "-fno-rtti" },
     });
     lib.addCSourceFile(.{
-        .file = b.path("src/discord/network_manager.cpp"),
+        .file = b.path("discord_game_sdk/cpp/network_manager.cpp"),
         .flags = &[_][]const u8{ "-std=c++17", "-fno-exceptions", "-fno-rtti" },
     });
     lib.addCSourceFile(.{
-        .file = b.path("src/discord/overlay_manager.cpp"),
+        .file = b.path("discord_game_sdk/cpp/overlay_manager.cpp"),
         .flags = &[_][]const u8{ "-std=c++17", "-fno-exceptions", "-fno-rtti" },
     });
     lib.addCSourceFile(.{
-        .file = b.path("src/discord/relationship_manager.cpp"),
+        .file = b.path("discord_game_sdk/cpp/relationship_manager.cpp"),
         .flags = &[_][]const u8{ "-std=c++17", "-fno-exceptions", "-fno-rtti" },
     });
     lib.addCSourceFile(.{
-        .file = b.path("src/discord/storage_manager.cpp"),
+        .file = b.path("discord_game_sdk/cpp/storage_manager.cpp"),
         .flags = &[_][]const u8{ "-std=c++17", "-fno-exceptions", "-fno-rtti" },
     });
     lib.addCSourceFile(.{
-        .file = b.path("src/discord/store_manager.cpp"),
+        .file = b.path("discord_game_sdk/cpp/store_manager.cpp"),
         .flags = &[_][]const u8{ "-std=c++17", "-fno-exceptions", "-fno-rtti" },
     });
     lib.addCSourceFile(.{
-        .file = b.path("src/discord/types.cpp"),
+        .file = b.path("discord_game_sdk/cpp/types.cpp"),
         .flags = &[_][]const u8{ "-std=c++17", "-fno-exceptions", "-fno-rtti" },
     });
     lib.addCSourceFile(.{
-        .file = b.path("src/discord/user_manager.cpp"),
+        .file = b.path("discord_game_sdk/cpp/user_manager.cpp"),
         .flags = &[_][]const u8{ "-std=c++17", "-fno-exceptions", "-fno-rtti" },
     });
     lib.addCSourceFile(.{
-        .file = b.path("src/discord/voice_manager.cpp"),
+        .file = b.path("discord_game_sdk/cpp/voice_manager.cpp"),
         .flags = &[_][]const u8{ "-std=c++17", "-fno-exceptions", "-fno-rtti" },
     });
 
